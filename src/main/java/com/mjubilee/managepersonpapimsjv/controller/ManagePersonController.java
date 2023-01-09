@@ -1,5 +1,7 @@
 package com.mjubilee.managepersonpapimsjv.controller;
 
+import org.glassfish.jersey.client.rx.rxjava.RxObservableInvoker;
+import org.glassfish.jersey.client.rx.rxjava.RxObservableInvokerProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +16,14 @@ import com.mjubilee.managepersonpapimsjv.client.ManagePersonClientImpl;
 import com.mjubilee.managepersonpapimsjv.configuration.EndpointConfiguration;
 import com.mjubilee.managepersonpapimsjv.model.Person;
 
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.core.GenericType;
+import jakarta.ws.rs.core.Response;
+import rx.Observable;
+
+import org.springframework.web.context.request.async.DeferredResult;
+import java.time.Duration;
 
 
 @RestController
@@ -43,14 +52,38 @@ public class ManagePersonController {
 	}
 	
 	@GetMapping(path = "/persons/async")
-	public ResponseEntity<Person> retrievePersonProfileAsync(@RequestParam String id) {
+	public DeferredResult< ResponseEntity<Person> > retrievePersonProfileAsync(@RequestParam String id) {
 
 		String port = environment.getProperty("local.server.port");
 		String host = environment.getProperty("HOSTNAME");
 		
-		this.log.info( host + " -- " + port + " -- retrievePersonProfile -- Retrieve a person profile");
+		this.log.info( host + " -- " + port + " -- retrievePersonProfileAsync -- Retrieve a person profile");
+		
+		Duration DEFAULT_RESPONSE_TIME = Duration.ofMinutes(2L);
+		DeferredResult< ResponseEntity<Person> > deferredResult = new DeferredResult(DEFAULT_RESPONSE_TIME.toMillis());
+		
+		String endpoint = endpointConfiguration.getPersonSapi() + "?id=" + id;	
+		
+		Client client = ClientBuilder.newClient();
+		client.register(RxObservableInvokerProvider.class);
 		
 		
-		return new ResponseEntity<Person>(new Person(),HttpStatus.OK);
+		Observable<Person> response = client.target(endpoint)
+		.request()
+		.rx(RxObservableInvoker.class)
+		.get().map( res -> {
+			return res.readEntity(Person.class);
+			});
+		
+		response.subscribe( (apiResponse) ->{
+			System.out.println(apiResponse);
+			
+			ResponseEntity<Person> responseData = new ResponseEntity<Person>(apiResponse, HttpStatus.OK);
+			deferredResult.setResult(responseData);
+		},//OnNext 
+			deferredResult::setErrorResult //OnError
+		);
+
+		return deferredResult; //new ResponseEntity<Person>(person,HttpStatus.OK);
 	}
 }

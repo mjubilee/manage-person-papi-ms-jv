@@ -1,6 +1,9 @@
 package com.mjubilee.managepersonpapimsjv.client;
 
+import org.glassfish.jersey.client.ClientConfig;
 import org.springframework.stereotype.Component;
+
+import com.mjubilee.managepersonpapimsjv.filter.RequestResponseFilter;
 
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
@@ -26,9 +29,14 @@ public class ManagePersonClientImpl implements ClientRequest{
 	public <T> T submitRequest(String endpoint, GenericType<T> returnClass) {		
 		log.info( "ManagePersonClientImpl : submitRequest -- Retrieve a person profile");
 		
-		Client client = ClientBuilder.newClient();
+		ClientConfig config = new ClientConfig();
+		config.register(RequestResponseFilter.class);
+		
+		Client client = ClientBuilder.newClient(config);
 		WebTarget target = client.target(endpoint);
+		
 		Builder builder = target.request(MediaType.APPLICATION_JSON);
+		
 		return builder.get(returnClass);
 	}
 
