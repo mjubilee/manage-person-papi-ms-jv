@@ -3,7 +3,10 @@ package com.mjubilee.managepersonpapimsjv.client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mjubilee.managepersonpapimsjv.model.Person;
+
 import jakarta.ws.rs.core.GenericType;
+import rx.Observable;
 
 public interface ClientRequest {
 
@@ -12,7 +15,7 @@ public interface ClientRequest {
 	//instead of using Class<T>, this function consume GenericType<T> to resolve the List response
 	public <T> T submitRequest (String endpoint, GenericType<T> returnClass);
 	
-//	public Observable<Person> submitRequestAsync (String endpoint);
+	public Observable<Person> submitRequestAsync (String endpoint);
 	
 	
 	

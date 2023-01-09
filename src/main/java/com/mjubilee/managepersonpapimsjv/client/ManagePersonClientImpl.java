@@ -1,9 +1,12 @@
 package com.mjubilee.managepersonpapimsjv.client;
 
 import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.rx.rxjava.RxObservableInvoker;
+import org.glassfish.jersey.client.rx.rxjava.RxObservableInvokerProvider;
 import org.springframework.stereotype.Component;
 
 import com.mjubilee.managepersonpapimsjv.filter.RequestResponseFilter;
+import com.mjubilee.managepersonpapimsjv.model.Person;
 
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
@@ -21,12 +24,13 @@ import jakarta.ws.rs.core.MediaType;
 //import org.glassfish.jersey.client.rx.RxClient;
 //import org.glassfish.jersey.client.rx.rxjava.RxObservable;
 //import org.glassfish.jersey.client.rx.rxjava.RxObservableInvoker;
+import rx.Observable;
 
 @Component
 public class ManagePersonClientImpl implements ClientRequest{
 
 	@Override
-	public <T> T submitRequest(String endpoint, GenericType<T> returnClass) {		
+	public <T> T submitRequest(String endpoint, GenericType<T> returnClass) {
 		log.info( "ManagePersonClientImpl : submitRequest -- Retrieve a person profile");
 		
 		ClientConfig config = new ClientConfig();
@@ -40,33 +44,22 @@ public class ManagePersonClientImpl implements ClientRequest{
 		return builder.get(returnClass);
 	}
 
-//	@Override	
-//	public  Observable<Person> submitRequestAsync(String endpoint) {
-//		final RxClient<RxObservableInvoker> rxClient;
-//		ClientConfig config = new ClientConfig();
-//
-//	    config.property(ApacheClientProperties.CONNECTION_MANAGER, new PoolingHttpClientConnectionManager());
-////		rxClient =  Rx.from(ClientBuilder.newClient(config), RxObservableInvoker.class);
-//	    rxClient =  RxObservable.from((javax.ws.rs.client.Client) ClientBuilder.newClient(config));
-//	    
-//		return rxClient.target(endpoint)
-//		        .request(MediaType.APPLICATION_JSON).rx().get().map(response -> {
-//		            
-//		            try {
-//		              if (response.getStatus() == Status.NOT_FOUND.getStatusCode()) {
-//		                throw new Exception(response.readEntity(String.class));
-//		              }
-//		              return response.readEntity(Person.class);
-//		            } catch (Exception e) {
-//						// TODO Auto-generated catch block
-//						e.printStackTrace();
-//					}
-//		            finally {
-//		              response.close();
-//		            }
-//					return null;
-//		          });
-//	}
-//	
-	
+	@Override
+	public Observable<Person> submitRequestAsync(String endpoint) {
+		log.info( "ManagePersonClientImpl : submitRequestAsync -- Retrieve a person profile asynchronously");
+
+		Client client = ClientBuilder.newClient();
+		client.register(RxObservableInvokerProvider.class);
+		
+		WebTarget webTarget = client.target(endpoint);
+		
+		RxObservableInvoker builder = webTarget.request()
+				.rx(RxObservableInvoker.class);
+		
+		return builder.get()
+				.map( res -> {
+			return res.readEntity(Person.class);
+			});
+	}
+
 }
